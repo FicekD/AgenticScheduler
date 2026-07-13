@@ -1,0 +1,221 @@
+@import 'tailwindcss';
+
+:root {
+  color-scheme: dark;
+}
+
+/* Accent themes — muted / "bland" palette. Channels are R G B for rgb(var() / a). */
+:root,
+[data-theme='teal'] {
+  --accent: 15 118 110;
+  --accent-strong: 13 148 136;
+  --accent-light: 94 234 212;
+}
+[data-theme='red'] {
+  --accent: 132 48 48;
+  --accent-strong: 156 66 66;
+  --accent-light: 228 152 152;
+}
+[data-theme='amber'] {
+  --accent: 152 118 58;
+  --accent-strong: 176 138 72;
+  --accent-light: 232 198 130;
+}
+[data-theme='violet'] {
+  --accent: 104 92 152;
+  --accent-strong: 124 112 176;
+  --accent-light: 198 190 232;
+}
+[data-theme='slate'] {
+  --accent: 74 100 114;
+  --accent-strong: 92 122 138;
+  --accent-light: 168 194 208;
+}
+[data-theme='green'] {
+  --accent: 79 122 82;
+  --accent-strong: 94 142 98;
+  --accent-light: 182 210 184;
+}
+
+/* Accent utility classes driven by the active theme. */
+.acc-solid {
+  background-color: rgb(var(--accent));
+  transition: background-color 0.15s ease;
+}
+.acc-solid:hover {
+  background-color: rgb(var(--accent-strong));
+}
+.acc-text {
+  color: rgb(var(--accent-light));
+}
+.acc-text-hover:hover {
+  color: rgb(var(--accent-strong));
+}
+.acc-soft {
+  background-color: rgb(var(--accent) / 0.22);
+}
+.acc-soft-15 {
+  background-color: rgb(var(--accent) / 0.15);
+}
+.acc-border {
+  border-color: rgb(var(--accent) / 0.35);
+}
+.acc-check {
+  accent-color: rgb(var(--accent-strong));
+}
+.acc-dot {
+  background-color: rgb(var(--accent-light));
+}
+.acc-focus:focus {
+  border-color: rgb(var(--accent-light));
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  background: #0e1213;
+  color: #d7dcdc;
+  -webkit-font-smoothing: antialiased;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: #2b3536;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+select.select-field {
+  appearance: none;
+  -webkit-appearance: none;
+  background-color: #161c1d;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239aa4a4' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='6 9 12 15 18 9'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 15px;
+  padding-right: 2.4rem;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+select.select-field:hover {
+  background-color: #1b2223;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+select.select-field:focus {
+  outline: none;
+  border-color: rgb(var(--accent-light));
+  box-shadow: 0 0 0 3px rgb(var(--accent) / 0.28);
+}
+select.select-field option {
+  background-color: #161c1d;
+  color: #d7dcdc;
+  padding: 8px;
+}
+select.select-field option:checked {
+  color: rgb(var(--accent-light));
+}
+
+.md {
+  font-size: 0.875rem;
+  line-height: 1.7;
+  color: #cbd3d3;
+}
+.md h1,
+.md h2,
+.md h3 {
+  color: #f1f5f5;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 1.2em 0 0.5em;
+}
+.md h1 {
+  font-size: 1.5em;
+}
+.md h2 {
+  font-size: 1.25em;
+}
+.md h3 {
+  font-size: 1.1em;
+}
+.md h1:first-child,
+.md h2:first-child,
+.md h3:first-child {
+  margin-top: 0;
+}
+.md p {
+  margin: 0.6em 0;
+}
+.md ul,
+.md ol {
+  margin: 0.6em 0;
+  padding-left: 1.4em;
+}
+.md ul {
+  list-style: disc;
+}
+.md ol {
+  list-style: decimal;
+}
+.md li {
+  margin: 0.25em 0;
+}
+.md li input[type='checkbox'] {
+  margin-right: 0.5em;
+  accent-color: #0d9488;
+}
+.md code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  font-size: 0.85em;
+}
+.md pre {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 0.9em 1em;
+  border-radius: 8px;
+  overflow: auto;
+  margin: 0.7em 0;
+}
+.md pre code {
+  background: none;
+  padding: 0;
+}
+.md a {
+  color: #2dd4bf;
+  text-decoration: underline;
+}
+.md blockquote {
+  border-left: 3px solid #2b3536;
+  padding-left: 1em;
+  color: #9aa4a4;
+  margin: 0.7em 0;
+}
+.md table {
+  border-collapse: collapse;
+  margin: 0.7em 0;
+}
+.md th,
+.md td {
+  border: 1px solid #2b3536;
+  padding: 0.35em 0.7em;
+}
+.md hr {
+  border: none;
+  border-top: 1px solid #2b3536;
+  margin: 1.2em 0;
+}
