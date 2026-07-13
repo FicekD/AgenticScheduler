@@ -1,53 +1,46 @@
 # Agentic Scheduler
 
-Desktop app (Electron + React + Tailwind) that fires an autonomous Claude Code
-**orchestrator** run against a target repo on a schedule aligned to your subscription's
-5‑hour usage windows. Each run is one `claude -p` process: an Opus orchestrator that
-spawns Sonnet subagents, works a single plan point on its own git branch, and writes a
-completion report. If a run is cut off by the usage limit, the next scheduled run detects
-the missing report and resumes the same point from its commits.
+A desktop app (Electron + React + Tailwind) that runs Claude Code against a repository on a configurable schedule. It is designed around Claude's 5-hour usage windows, so long-running work can continue across multiple sessions.
+
+Each scheduled run starts a single `claude -p` process using Opus as the orchestrator. The orchestrator can spawn Sonnet subagents, works on one item from the project plan, creates its own git branch, and writes a completion report when finished. If a run is interrupted by the usage limit, the next scheduled run resumes the unfinished work.
 
 ## How it works
 
-- **Schedule** — `node-cron` fires at your configured local times (default 06:00 / 11:00 / 16:00).
-- **Launch** — spawns `claude -p --model opus --permission-mode bypassPermissions
-  --output-format stream-json --verbose` with the target repo as `cwd`; the prompt is piped
-  via stdin (no shell quoting).
-- **Resume logic** — completion == a new file in the repo's `reports/` dir. The app diffs the
-  reports directory around each run; no report ⇒ the next run continues the same point.
-- **Durable progress** lives in the target repo (branches + commits). The app only stores run
-  history (`runs.json`) and config (`config.json`) under Electron `userData`.
+- **Scheduling** – Uses `node-cron` with configurable local times (defaults: 06:00, 11:00 and 16:00).
+- **Launching Claude** – Starts `claude -p --model opus --permission-mode bypassPermissions --output-format stream-json --verbose` in the target repository. The prompt is passed through stdin rather than shell arguments.
+- **Resuming work** – A run is considered complete when a new report appears in the repository's `reports/` directory. If no report is found after a run, the next scheduled execution continues from the previous point.
+- **State** – All development progress lives in the target repository through branches and commits. The application only stores its own configuration (`config.json`) and run history (`runs.json`) inside Electron's `userData` directory.
 
-The orchestrator always works on a **dedicated branch it creates** (it chooses the base). It
-never merges — you review and merge branches manually.
+The scheduler always lets Claude work on a branch it creates itself. Branches are never merged automatically—you review and merge them manually.
 
-## Run it
+## Running the application
 
 ```bash
-npm install       # also generates the tray icon
-npm run dev        # launches the app with HMR
-npm run build      # compile main/preload/renderer to out/
+npm install       # installs dependencies and generates the tray icon
+npm run dev       # starts the application with HMR
+npm run build     # builds the application into out/
 ```
 
-Then in **Settings**: pick the target repo, confirm the schedule, and (for a dry run) point
-it at `sample-target/`. Hit **Run now** on the Dashboard to watch live activity.
+Open **Settings**, select the target repository, adjust the schedule if needed, and optionally use `sample-target/` for testing. From the Dashboard, click **Run now** to start a run immediately.
 
-## Target repo contract
+## Target repository layout
 
-The scheduler keeps its own state under a **gitignored** `.agentic-scheduler/` dir in the
-target repo (auto-added to the repo's `.gitignore` on first use), so it never pollutes git:
+The scheduler stores its own files in a gitignored `.agentic-scheduler/` directory inside the target repository. The directory is added to `.gitignore` automatically on first use.
 
-- `.agentic-scheduler/PLAN.md` — numbered points of work, top to bottom.
-- `.agentic-scheduler/reports/` — the app/agent writes `point-N.md` here when point N is done.
+```
+.agentic-scheduler/
+├── PLAN.md
+└── reports/
+```
 
-The report is a local completion certificate detected on disk — it is intentionally not
-committed. Actual work lands on per-point branches you review and merge. See `sample-target/`
-for the shape.
+- `PLAN.md` contains the ordered list of work items.
+- `reports/` contains `point-N.md` files created when a plan item is completed.
 
-## Notes / known gaps (prototype)
+Reports are only used locally to track completed work and are not committed to git. The actual code changes remain on the branches created by Claude. See `sample-target/` for an example repository.
 
-- `bypassPermissions` runs the agent unattended with full tool access — always on a branch,
-  never on your working `main`. Review via PR.
-- Only one run executes at a time; a scheduled slot is skipped if a run is already active.
-- Run history is a JSON file; swap for SQLite if it grows large.
-- Live parsing keys off the `stream-json` event types (`system`/`assistant`/`result`).
+## Current limitations
+
+- Runs use `bypassPermissions`, allowing Claude to work unattended with full tool access. Work is always performed on a separate branch rather than your main branch.
+- Only one run can execute at a time. If a scheduled time arrives while another run is still active, it is skipped.
+- Run history is currently stored as JSON. SQLite would be a better option if the history becomes large.
+- Live output is parsed from the `stream-json` event stream (`system`, `assistant` and `result` events).
