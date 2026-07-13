@@ -8,6 +8,8 @@ Each scheduled run starts a single `claude -p` process using Opus as the orchest
   <img src="assets/screen.png" />
 </p>
 
+This app is useful when you have are running short on your five hour LLM usage and would like your agents to work when you are at work or sleeping. The recommended way of working is to first generate series of plans, either yourself or with a strong agent, then schedule execution prompts that reference these plans. Each action point creates a new branchm, you are then responsible for merging them together. 
+
 ## How it works
 
 - **Scheduling** – Uses `node-cron` with configurable local times (defaults: 06:00, 11:00 and 16:00).
