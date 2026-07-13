@@ -4,6 +4,10 @@ A desktop app (Electron + React + Tailwind) that runs Claude Code against a repo
 
 Each scheduled run starts a single `claude -p` process using Opus as the orchestrator. The orchestrator can spawn Sonnet subagents, works on one item from the project plan, creates its own git branch, and writes a completion report when finished. If a run is interrupted by the usage limit, the next scheduled run resumes the unfinished work.
 
+<p align="center">
+  <img src="assets/screen.png" />
+</p>
+
 ## How it works
 
 - **Scheduling** – Uses `node-cron` with configurable local times (defaults: 06:00, 11:00 and 16:00).
