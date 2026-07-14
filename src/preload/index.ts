@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame } from 'electron'
+import type { Api, SlotNext } from '../shared/api'
 import type {
   AgentInfo,
   Config,
@@ -9,14 +10,7 @@ import type {
   ReportFile
 } from '../shared/types'
 
-export interface SlotNext {
-  id: string
-  time: string
-  enabled: boolean
-  next: number | null
-}
-
-const api = {
+const api: Api = {
   detectAgents: (force?: boolean): Promise<AgentInfo[]> =>
     ipcRenderer.invoke('agents:detect', force),
   getConfig: (): Promise<Config> => ipcRenderer.invoke('config:get'),
@@ -68,5 +62,3 @@ const api = {
 }
 
 contextBridge.exposeInMainWorld('api', api)
-
-export type Api = typeof api

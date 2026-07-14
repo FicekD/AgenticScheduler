@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { Config, LogEntry, LogLevel, Run, RunEvent, ReportFile } from '@shared/types'
-import type { SlotNext } from '../../preload/index'
+import type { SlotNext } from '@shared/api'
 
 export interface LogLine {
   ts: number

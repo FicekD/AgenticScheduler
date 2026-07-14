@@ -95,7 +95,7 @@ export default function Logs(): JSX.Element {
               </span>
               <span className={cx('w-10 shrink-0 uppercase', LEVEL_COLOR[e.level])}>{e.level}</span>
               <span className="shrink-0 text-zinc-500">[{e.scope}]</span>
-              <span className="min-w-0 break-words text-zinc-300">
+              <span className="min-w-0 wrap-break-word text-zinc-300">
                 {e.message}
                 {e.detail && (
                   <span className="whitespace-pre-wrap text-zinc-600"> :: {e.detail}</span>
