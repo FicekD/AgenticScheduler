@@ -13,8 +13,11 @@ function configPath(): string {
 function defaults(): Config {
   return {
     repoPath: '',
+    agent: 'claude',
     claudePath: 'claude',
+    codexPath: 'codex',
     model: 'opus',
+    reasoningEffort: null,
     reportsDir: '.agentic-scheduler/reports',
     planPath: '.agentic-scheduler/PLAN.md',
     maxBudgetUsd: null,

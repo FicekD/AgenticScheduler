@@ -1,5 +1,5 @@
 export const DEFAULT_PROMPT_TEMPLATE = `You are the ORCHESTRATOR for a scheduled, unattended work session running on a rate-limited
-subscription. You run as Opus and delegate parallelizable work to Sonnet subagents.
+subscription. If possible, you delegate parallelizable work to weaker subagents.
 
 ## Context you are given
 - Working directory: the target repository.

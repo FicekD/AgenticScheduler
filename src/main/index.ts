@@ -8,6 +8,7 @@ import { runOrchestrator, cancelRun, isBusy } from './runner'
 import { applySchedule, nextRunFor } from './scheduler'
 import { loadWindowState, trackWindowState } from './windowState'
 import { ensureAgenticIgnored } from './repo'
+import { detectAgents } from './agents'
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -129,6 +130,7 @@ function registerIpc(): void {
     }
   })
 
+  ipcMain.handle('agents:detect', (_e, force?: boolean) => detectAgents(config, force ?? false))
   ipcMain.handle('config:get', () => config)
   ipcMain.handle('config:save', (_e, next: Config) => {
     config = saveConfig(next)

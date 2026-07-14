@@ -12,13 +12,35 @@ export interface Slot {
   enabled: boolean
 }
 
+export type AgentKind = 'claude' | 'codex'
+
+export interface AgentModel {
+  id: string // value passed to --model / -m
+  label: string
+  description: string | null
+  efforts: string[] // reasoning levels this model accepts; empty = not selectable
+  defaultEffort: string | null
+}
+
+export interface AgentInfo {
+  kind: AgentKind
+  label: string
+  available: boolean
+  version: string | null
+  models: AgentModel[]
+  note: string | null // why the model list is empty / how to fix it
+}
+
 export interface Config {
   repoPath: string
+  agent: AgentKind
   claudePath: string
+  codexPath: string
   model: string
+  reasoningEffort: string | null // null = let the agent pick
   reportsDir: string // relative to repo
   planPath: string // relative to repo
-  maxBudgetUsd: number | null
+  maxBudgetUsd: number | null // Claude Code only
   slots: Slot[]
   promptTemplate: string
   uiScale: number // 75 | 100 | 125

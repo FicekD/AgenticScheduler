@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer, webFrame } from 'electron'
-import type { Config, Run, RunEvent, ReportFile } from '../shared/types'
+import type { AgentInfo, Config, Run, RunEvent, ReportFile } from '../shared/types'
 
 export interface SlotNext {
   id: string
@@ -9,6 +9,8 @@ export interface SlotNext {
 }
 
 const api = {
+  detectAgents: (force?: boolean): Promise<AgentInfo[]> =>
+    ipcRenderer.invoke('agents:detect', force),
   getConfig: (): Promise<Config> => ipcRenderer.invoke('config:get'),
   saveConfig: (cfg: Config): Promise<Config> => ipcRenderer.invoke('config:save', cfg),
   pickRepo: (): Promise<string | null> => ipcRenderer.invoke('config:pickRepo'),

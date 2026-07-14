@@ -1,8 +1,8 @@
 # Agentic Scheduler
 
-A desktop app (Electron + React + Tailwind) that runs Claude Code against a repository on a configurable schedule. It is designed around Claude's 5-hour usage windows, so long-running work can continue across multiple sessions.
+A desktop app (Electron + React + Tailwind) that runs a coding agent (Claude Code or Codex) against a repository on a configurable schedule. It is designed around the 5-hour usage windows of these subscriptions, so long-running work can continue across multiple sessions.
 
-Each scheduled run starts a single `claude -p` process using Opus as the orchestrator. The orchestrator can spawn Sonnet subagents, works on one item from the project plan, creates its own git branch, and writes a completion report when finished. If a run is interrupted by the usage limit, the next scheduled run resumes the unfinished work.
+Each scheduled run starts a single agent process as the orchestrator. The orchestrator works on one item from the project plan, creates its own git branch, and writes a completion report when finished. If a run is interrupted by the usage limit, the next scheduled run resumes the unfinished work.
 
 <p align="center">
   <img src="assets/screen.png" />
@@ -13,11 +13,12 @@ This app is useful when you have are running short on your five hour LLM usage a
 ## How it works
 
 - **Scheduling** – Uses `node-cron` with configurable local times (defaults: 06:00, 11:00 and 16:00).
-- **Launching Claude** – Starts `claude -p --model opus --permission-mode bypassPermissions --output-format stream-json --verbose` in the target repository. The prompt is passed through stdin rather than shell arguments.
+- **Launching the agent** – Starts either `claude -p --permission-mode bypassPermissions --output-format stream-json --verbose` or `codex exec --json --dangerously-bypass-approvals-and-sandbox` in the target repository. The prompt is passed through stdin rather than shell arguments.
+- **Models and reasoning effort** – Settings detects the installed CLIs and lists the models each one offers (Codex reads its own cached model list, so new models appear without an app update). Models that support a reasoning level get an effort dropdown; leaving it on *Default* lets the agent decide.
 - **Resuming work** – A run is considered complete when a new report appears in the repository's `reports/` directory. If no report is found after a run, the next scheduled execution continues from the previous point.
 - **State** – All development progress lives in the target repository through branches and commits. The application only stores its own configuration (`config.json`) and run history (`runs.json`) inside Electron's `userData` directory.
 
-The scheduler always lets Claude work on a branch it creates itself. Branches are never merged automatically—you review and merge them manually.
+The scheduler always lets the agent work on a branch it creates itself. Branches are never merged automatically, you review and merge them manually.
 
 ## Running the application
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { FolderOpen, Save, Plus, Trash2 } from 'lucide-react'
-import type { Config, Slot } from '@shared/types'
+import { FolderOpen, Save, Plus, Trash2, RotateCw } from 'lucide-react'
+import type { AgentInfo, AgentKind, Config, Slot } from '@shared/types'
 import { useStore } from '../store'
 import { Card } from './common'
 import Markdown from './Markdown'
@@ -9,13 +9,33 @@ import ThemePicker from './ThemePicker'
 const field = 'w-full rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none acc-focus'
 const label = 'text-xs font-medium uppercase tracking-wide text-zinc-500'
 
+const AGENTS: Array<[AgentKind, string]> = [
+  ['claude', 'Claude Code'],
+  ['codex', 'Codex']
+]
+
+const title = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
+
 export default function Settings(): JSX.Element {
   const { config, saveConfig } = useStore()
   const [draft, setDraft] = useState<Config | null>(config)
   const [saved, setSaved] = useState(false)
+  const [agents, setAgents] = useState<AgentInfo[] | null>(null)
+  const [detecting, setDetecting] = useState(false)
 
   // Initialize once; a live repo commit must not clobber other unsaved edits.
   useEffect(() => setDraft((prev) => prev ?? config), [config])
+
+  const detect = useCallback(async (force: boolean): Promise<void> => {
+    setDetecting(true)
+    try {
+      setAgents(await window.api.detectAgents(force))
+    } finally {
+      setDetecting(false)
+    }
+  }, [])
+
+  useEffect(() => void detect(false), [detect])
 
   // Pin the schedule panel to the general panel's height so it scrolls instead of growing.
   const ro = useRef<ResizeObserver>()
@@ -46,6 +66,22 @@ export default function Settings(): JSX.Element {
 
   const set = <K extends keyof Config>(k: K, v: Config[K]): void => {
     setDraft({ ...draft, [k]: v })
+    setSaved(false)
+  }
+
+  const info = agents?.find((a) => a.kind === draft.agent) ?? null
+  const models = info?.models ?? []
+  // A model the CLI no longer advertises (or a hand-edited config) must still show as selected.
+  const options = models.some((m) => m.id === draft.model)
+    ? models
+    : [{ id: draft.model, label: `${draft.model} (custom)`, efforts: [], defaultEffort: null }, ...models]
+  const efforts = models.find((m) => m.id === draft.model)?.efforts ?? []
+  const defaultEffort = models.find((m) => m.id === draft.model)?.defaultEffort
+
+  // Each agent has its own models and effort levels — carrying the old ones over is nonsense.
+  const setAgent = (kind: AgentKind): void => {
+    const next = agents?.find((a) => a.kind === kind)?.models[0]
+    setDraft({ ...draft, agent: kind, model: next?.id ?? '', reasoningEffort: null })
     setSaved(false)
   }
 
@@ -125,27 +161,106 @@ export default function Settings(): JSX.Element {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <div className={label}>Agent model</div>
+                  <div className={label}>Agent</div>
                   <select
                     className={`${field} select-field mt-1`}
-                    value={draft.model}
-                    onChange={(e) => set('model', e.target.value)}
+                    value={draft.agent}
+                    onChange={(e) => setAgent(e.target.value as AgentKind)}
                   >
-                    <option value="opus">Opus</option>
-                    <option value="sonnet">Sonnet</option>
-                    <option value="haiku">Haiku</option>
+                    {AGENTS.map(([kind, name]) => (
+                      <option key={kind} value={kind}>
+                        {name}
+                      </option>
+                    ))}
                   </select>
+                  <div className="mt-1 text-xs text-zinc-500">
+                    {detecting && 'Looking for the CLI…'}
+                    {!detecting && info?.available && `Found ${info.version}`}
+                    {!detecting && info && !info.available && (
+                      <span className="text-amber-400">{info.note}</span>
+                    )}
+                  </div>
                 </div>
                 <div>
-                  <div className={label}>Plan file</div>
-                  <input className={`${field} mt-1`} value={draft.planPath} onChange={(e) => set('planPath', e.target.value)} />
+                  <div className={label}>CLI path</div>
+                  <div className="mt-1 flex gap-2">
+                    <input
+                      className={field}
+                      value={draft.agent === 'claude' ? draft.claudePath : draft.codexPath}
+                      onChange={(e) =>
+                        set(draft.agent === 'claude' ? 'claudePath' : 'codexPath', e.target.value)
+                      }
+                      onBlur={() => void detect(true)}
+                      placeholder={draft.agent}
+                    />
+                    <button
+                      onClick={() => void detect(true)}
+                      title="Re-detect the CLI and its models"
+                      className="flex shrink-0 items-center gap-2 rounded-lg border border-white/10 px-3 text-sm text-zinc-300 hover:bg-white/5"
+                    >
+                      <RotateCw size={15} className={detecting ? 'animate-spin' : undefined} />
+                    </button>
+                  </div>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
+                  <div className={label}>Model</div>
+                  {models.length === 0 && info?.available ? (
+                    <input
+                      className={`${field} mt-1`}
+                      value={draft.model}
+                      onChange={(e) => set('model', e.target.value)}
+                      placeholder="model name"
+                    />
+                  ) : (
+                    <select
+                      className={`${field} select-field mt-1`}
+                      value={draft.model}
+                      onChange={(e) => set('model', e.target.value)}
+                    >
+                      {options.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                  {info?.note && info.available && (
+                    <div className="mt-1 text-xs text-amber-400">{info.note}</div>
+                  )}
+                </div>
+                <div>
+                  <div className={label}>Reasoning effort</div>
+                  <select
+                    className={`${field} select-field mt-1`}
+                    value={draft.reasoningEffort ?? ''}
+                    disabled={efforts.length === 0}
+                    onChange={(e) => set('reasoningEffort', e.target.value || null)}
+                  >
+                    <option value="">
+                      {efforts.length === 0 ? 'Not offered by this model' : "Default (the agent decides)"}
+                    </option>
+                    {efforts.map((e) => (
+                      <option key={e} value={e}>
+                        {title(e)}
+                        {e === defaultEffort ? ' (default)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className={label}>Plan file</div>
+                  <input className={`${field} mt-1`} value={draft.planPath} onChange={(e) => set('planPath', e.target.value)} />
+                </div>
+                <div>
                   <div className={label}>Reports folder</div>
                   <input className={`${field} mt-1`} value={draft.reportsDir} onChange={(e) => set('reportsDir', e.target.value)} />
                 </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <div className={label}>UI scale</div>
                   <select
