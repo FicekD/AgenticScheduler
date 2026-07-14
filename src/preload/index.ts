@@ -1,5 +1,13 @@
 import { contextBridge, ipcRenderer, webFrame } from 'electron'
-import type { AgentInfo, Config, Run, RunEvent, ReportFile } from '../shared/types'
+import type {
+  AgentInfo,
+  Config,
+  LogEntry,
+  LogLevel,
+  Run,
+  RunEvent,
+  ReportFile
+} from '../shared/types'
 
 export interface SlotNext {
   id: string
@@ -45,6 +53,17 @@ const api = {
     const h = (): void => cb()
     ipcRenderer.on('runs:changed', h)
     return () => ipcRenderer.removeListener('runs:changed', h)
+  },
+
+  listLogs: (): Promise<LogEntry[]> => ipcRenderer.invoke('logs:list'),
+  clearLogs: (): Promise<void> => ipcRenderer.invoke('logs:clear'),
+  revealLogFile: (): Promise<void> => ipcRenderer.invoke('logs:reveal'),
+  writeLog: (level: LogLevel, message: string, detail?: string): void =>
+    ipcRenderer.send('logs:write', level, message, detail),
+  onLogEntry: (cb: (entry: LogEntry) => void): (() => void) => {
+    const h = (_e: unknown, entry: LogEntry): void => cb(entry)
+    ipcRenderer.on('log:entry', h)
+    return () => ipcRenderer.removeListener('log:entry', h)
   }
 }
 

@@ -1,5 +1,6 @@
 import { readFileSync, writeFileSync, existsSync } from 'fs'
 import { join } from 'path'
+import { errText, log } from './log'
 
 const ENTRY = '.agentic-scheduler/'
 
@@ -22,5 +23,10 @@ export function ensureAgenticIgnored(repoPath: string): void {
   if (present) return
 
   const prefix = content && !content.endsWith('\n') ? '\n' : ''
-  writeFileSync(gitignore, `${content}${prefix}${ENTRY}\n`)
+  try {
+    writeFileSync(gitignore, `${content}${prefix}${ENTRY}\n`)
+    log.info('repo', `added ${ENTRY} to .gitignore`, gitignore)
+  } catch (err) {
+    log.warn('repo', `could not update ${gitignore}`, errText(err))
+  }
 }

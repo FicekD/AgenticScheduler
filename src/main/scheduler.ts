@@ -2,6 +2,7 @@ import cron, { ScheduledTask } from 'node-cron'
 import { BrowserWindow } from 'electron'
 import type { Config, Slot } from '../shared/types'
 import { runOrchestrator, isBusy } from './runner'
+import { errText, log } from './log'
 
 let jobs: ScheduledTask[] = []
 
@@ -33,12 +34,19 @@ export function applySchedule(getConfig: () => Config): void {
   for (const slot of cfg.slots) {
     if (!slot.enabled) continue
     const expr = cronExpr(slot.time)
-    if (!expr) continue
+    if (!expr) {
+      log.warn('scheduler', `slot ${slot.id} has an unusable time "${slot.time}" — skipped`)
+      continue
+    }
     const task = cron.schedule(expr, () => {
       const current = getConfig()
       const s = current.slots.find((x) => x.id === slot.id)
-      if (!s || !s.enabled) return
+      if (!s || !s.enabled) {
+        log.debug('scheduler', `slot ${slot.time} fired but is now disabled`)
+        return
+      }
       if (isBusy()) {
+        log.warn('scheduler', `slot ${s.time} skipped — a run is already active`)
         BrowserWindow.getAllWindows()[0]?.webContents.send('run:event', {
           runId: 'scheduler',
           ts: Date.now(),
@@ -47,12 +55,16 @@ export function applySchedule(getConfig: () => Config): void {
         })
         return
       }
+      log.info('scheduler', `slot ${s.time} fired`)
       try {
         runOrchestrator(current, `Scheduled ${s.time}`, s.id)
-      } catch {
-        /* surfaced elsewhere */
+      } catch (err) {
+        log.error('scheduler', `slot ${s.time} could not start a run`, errText(err))
       }
     })
     jobs.push(task)
   }
+
+  const times = cfg.slots.filter((s) => s.enabled).map((s) => s.time)
+  log.info('scheduler', `${jobs.length} slot(s) armed`, times.join(', ') || 'none enabled')
 }

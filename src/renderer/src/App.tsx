@@ -1,5 +1,12 @@
 import { useEffect, useState } from 'react'
-import { LayoutDashboard, FileText, Settings as SettingsIcon, ListChecks, CalendarClock } from 'lucide-react'
+import {
+  LayoutDashboard,
+  FileText,
+  Settings as SettingsIcon,
+  ListChecks,
+  CalendarClock,
+  ScrollText
+} from 'lucide-react'
 import { useStore } from './store'
 import { cx } from './components/common'
 import TitleBar from './components/TitleBar'
@@ -8,31 +15,46 @@ import Dashboard from './components/Dashboard'
 import PlanEditor from './components/PlanEditor'
 import Reports from './components/Reports'
 import Settings from './components/Settings'
+import Logs from './components/Logs'
 
-type Tab = 'dashboard' | 'plan' | 'reports' | 'settings'
+type Tab = 'dashboard' | 'plan' | 'reports' | 'settings' | 'logs'
 
 const TABS: { id: Tab; label: string; icon: JSX.Element }[] = [
   { id: 'dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} /> },
   { id: 'plan', label: 'Plan', icon: <ListChecks size={18} /> },
   { id: 'reports', label: 'Reports', icon: <FileText size={18} /> },
-  { id: 'settings', label: 'Settings', icon: <SettingsIcon size={18} /> }
+  { id: 'settings', label: 'Settings', icon: <SettingsIcon size={18} /> },
+  { id: 'logs', label: 'Logs', icon: <ScrollText size={18} /> }
 ]
 
 export default function App(): JSX.Element {
   const [tab, setTab] = useState<Tab>('dashboard')
-  const { refreshAll, refreshRuns, pushLog, config } = useStore()
+  const { refreshAll, refreshRuns, pushLog, pushAppLog, config } = useStore()
 
   useEffect(() => {
     void refreshAll()
     const offEvent = window.api.onRunEvent(pushLog)
     const offChanged = window.api.onRunsChanged(() => void refreshRuns())
+    const offLog = window.api.onLogEntry(pushAppLog)
     const tick = setInterval(() => void refreshRuns(), 30_000)
+
+    // A crash in the UI is exactly what the Logs tab exists for.
+    const onError = (e: ErrorEvent): void =>
+      window.api.writeLog('error', e.message, `${e.filename}:${e.lineno}`)
+    const onRejection = (e: PromiseRejectionEvent): void =>
+      window.api.writeLog('error', 'unhandled rejection in the UI', String(e.reason))
+    window.addEventListener('error', onError)
+    window.addEventListener('unhandledrejection', onRejection)
+
     return () => {
       offEvent()
       offChanged()
+      offLog()
       clearInterval(tick)
+      window.removeEventListener('error', onError)
+      window.removeEventListener('unhandledrejection', onRejection)
     }
-  }, [refreshAll, refreshRuns, pushLog])
+  }, [refreshAll, refreshRuns, pushLog, pushAppLog])
 
   useEffect(() => {
     if (config?.uiScale) window.api.setUiScale(config.uiScale)
@@ -91,6 +113,7 @@ export default function App(): JSX.Element {
           {tab === 'plan' && <PlanEditor />}
           {tab === 'reports' && <Reports />}
           {tab === 'settings' && <Settings />}
+          {tab === 'logs' && <Logs />}
         </div>
       </main>
     </div>

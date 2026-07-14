@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import type { Config, Run, RunEvent, ReportFile } from '@shared/types'
+import type { Config, LogEntry, LogLevel, Run, RunEvent, ReportFile } from '@shared/types'
 import type { SlotNext } from '../../preload/index'
 
 export interface LogLine {
@@ -14,6 +14,8 @@ interface AppState {
   nextTimes: SlotNext[]
   reports: ReportFile[]
   log: LogLine[]
+  appLogs: LogEntry[]
+  logLevel: LogLevel // lowest severity shown in the Logs tab
   activeRunId: string | null
   refreshAll: () => Promise<void>
   refreshRuns: () => Promise<void>
@@ -22,6 +24,9 @@ interface AppState {
   runNow: () => Promise<string | null>
   pushLog: (ev: RunEvent) => void
   clearLog: () => void
+  pushAppLog: (entry: LogEntry) => void
+  clearAppLogs: () => Promise<void>
+  setLogLevel: (level: LogLevel) => void
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -30,17 +35,20 @@ export const useStore = create<AppState>((set, get) => ({
   nextTimes: [],
   reports: [],
   log: [],
+  appLogs: [],
+  logLevel: 'info',
   activeRunId: null,
 
   refreshAll: async () => {
-    const [config, runs, nextTimes, reports] = await Promise.all([
+    const [config, runs, nextTimes, reports, appLogs] = await Promise.all([
       window.api.getConfig(),
       window.api.listRuns(),
       window.api.nextTimes(),
-      window.api.listReports()
+      window.api.listReports(),
+      window.api.listLogs()
     ])
     const active = runs.find((r) => r.status === 'running')?.id ?? null
-    set({ config, runs, nextTimes, reports, activeRunId: active })
+    set({ config, runs, nextTimes, reports, appLogs, activeRunId: active })
   },
 
   refreshRuns: async () => {
@@ -74,5 +82,14 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  clearLog: () => set({ log: [] })
+  clearLog: () => set({ log: [] }),
+
+  pushAppLog: (entry) => set((s) => ({ appLogs: [...s.appLogs.slice(-1999), entry] })),
+
+  clearAppLogs: async () => {
+    await window.api.clearLogs()
+    set({ appLogs: [] })
+  },
+
+  setLogLevel: (level) => set({ logLevel: level })
 }))

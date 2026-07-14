@@ -7,6 +7,7 @@ import type { Config, Run, RunEvent, RunEventKind, RunStatus } from '../shared/t
 import { addRun, updateRun } from './store'
 import { ensureAgenticIgnored } from './repo'
 import { adapterFor, resolveBin, shellQuote } from './agents'
+import { errText, log } from './log'
 
 const active = new Map<string, ChildProcess>()
 
@@ -24,7 +25,8 @@ function reportSet(cfg: Config): Set<string> {
   if (!existsSync(dir)) return new Set()
   try {
     return new Set(readdirSync(dir).filter((f) => f.toLowerCase().endsWith('.md')))
-  } catch {
+  } catch (err) {
+    log.warn('runner', `could not read reports dir ${dir}`, errText(err))
     return new Set()
   }
 }
@@ -36,8 +38,12 @@ function renderPrompt(cfg: Config): string {
 }
 
 export function runOrchestrator(cfg: Config, label: string, slotId: string | null): Run | null {
-  if (isBusy()) return null
+  if (isBusy()) {
+    log.warn('runner', `"${label}" not started — a run is already active`)
+    return null
+  }
   if (!cfg.repoPath || !existsSync(cfg.repoPath)) {
+    log.error('runner', `"${label}" not started — repository path is unset or missing`, cfg.repoPath)
     throw new Error('Repository path is not set or does not exist.')
   }
   ensureAgenticIgnored(cfg.repoPath)
@@ -66,12 +72,23 @@ export function runOrchestrator(cfg: Config, label: string, slotId: string | nul
   const emitEvent: (kind: RunEventKind, text: string) => void = (kind, text) => {
     // Claude reports usage limits on stderr; Codex reports them as stream error events.
     if (kind === 'error' || kind === 'stderr') failText = (failText + '\n' + text).slice(-4000)
+    if (kind === 'error') log.error('agent', text)
+    else if (kind === 'stderr') log.debug('agent', text)
     emit(win, run.id, kind, text)
   }
   const parseLine = agent.createParser(run, emitEvent)
 
   const before = reportSet(cfg)
-  const child = spawn(shellQuote(resolveBin(cfg.agent, cfg)), agent.args(cfg), {
+  const bin = shellQuote(resolveBin(cfg.agent, cfg))
+  const args = agent.args(cfg)
+  log.info(
+    'runner',
+    `starting "${label}" with ${agent.label} (${cfg.model}${cfg.reasoningEffort ? `, effort ${cfg.reasoningEffort}` : ''})`,
+    `run ${run.id} in ${cfg.repoPath}`
+  )
+  log.debug('runner', `${bin} ${args.join(' ')}`)
+
+  const child = spawn(bin, args, {
     cwd: cfg.repoPath,
     shell: true,
     windowsHide: true,
@@ -134,6 +151,13 @@ export function runOrchestrator(cfg: Config, label: string, slotId: string | nul
       error: status === 'error' ? failText.trim().slice(-400) || null : null
     })
 
+    const secs = Math.round((Date.now() - run.startedAt) / 1000)
+    const summary = `"${label}" finished: ${status} (exit ${code ?? '?'}) after ${secs}s`
+    const detail = created.length ? `wrote ${created.join(', ')}` : 'no report written'
+    if (status === 'error') log.error('runner', summary, failText.trim().slice(-400) || detail)
+    else if (status === 'limit' || status === 'incomplete') log.warn('runner', summary, detail)
+    else log.info('runner', summary, detail)
+
     emit(win, run.id, 'status', `finished: ${status} (exit ${code ?? '?'})`)
     win?.webContents.send('runs:changed')
     notify(status, label, created)
@@ -142,7 +166,7 @@ export function runOrchestrator(cfg: Config, label: string, slotId: string | nul
 
   child.on('close', (code) => finalize(code))
   child.on('error', (err) => {
-    emitEvent('error', err.message)
+    emitEvent('error', `could not launch ${bin}: ${err.message}`)
     finalize(null)
   })
 
@@ -151,7 +175,11 @@ export function runOrchestrator(cfg: Config, label: string, slotId: string | nul
 
 export function cancelRun(runId: string): boolean {
   const child = active.get(runId)
-  if (!child) return false
+  if (!child) {
+    log.warn('runner', `cancel ignored — run ${runId} is not active`)
+    return false
+  }
+  log.info('runner', `cancelling run ${runId}`)
   updateRun(runId, { status: 'cancelled' })
   child.kill()
   return true

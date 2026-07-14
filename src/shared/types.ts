@@ -83,3 +83,15 @@ export interface ReportFile {
   path: string
   mtime: number
 }
+
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error'
+
+export const LOG_LEVELS: LogLevel[] = ['debug', 'info', 'warn', 'error']
+
+export interface LogEntry {
+  ts: number
+  level: LogLevel
+  scope: string // which part of the app spoke: runner, scheduler, config, …
+  message: string
+  detail?: string
+}

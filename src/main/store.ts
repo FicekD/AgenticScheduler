@@ -2,6 +2,7 @@ import { app } from 'electron'
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'fs'
 import { join } from 'path'
 import type { Run } from '../shared/types'
+import { errText, log } from './log'
 
 function runsPath(): string {
   const dir = app.getPath('userData')
@@ -20,14 +21,19 @@ export function listRuns(): Run[] {
   }
   try {
     cache = JSON.parse(readFileSync(p, 'utf-8'))
-  } catch {
+  } catch (err) {
+    log.error('store', 'runs.json is unreadable — starting with an empty history', errText(err))
     cache = []
   }
   return cache!
 }
 
 function persist(): void {
-  writeFileSync(runsPath(), JSON.stringify(cache ?? [], null, 2))
+  try {
+    writeFileSync(runsPath(), JSON.stringify(cache ?? [], null, 2))
+  } catch (err) {
+    log.error('store', 'could not write runs.json', errText(err))
+  }
 }
 
 export function addRun(run: Run): void {

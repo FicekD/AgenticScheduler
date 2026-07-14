@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import { join } from 'path'
 import { promisify } from 'util'
 import type { AgentInfo, AgentKind, AgentModel, Config } from '../../shared/types'
+import { errText, log } from '../log'
 
 const pexec = promisify(execFile)
 
@@ -41,7 +42,8 @@ async function cli(bin: string, args: string[]): Promise<string | null> {
       shell: true
     })
     return stdout
-  } catch {
+  } catch (err) {
+    log.debug('agents', `"${bin} ${args.join(' ')}" failed`, errText(err))
     return null
   }
 }
@@ -125,7 +127,8 @@ function codexModels(): AgentModel[] {
         efforts: (m.supported_reasoning_levels ?? []).map((e: any) => e.effort).filter(Boolean),
         defaultEffort: m.default_reasoning_level ?? null
       }))
-  } catch {
+  } catch (err) {
+    log.warn('agents', `could not read ${cachePath}`, errText(err))
     return []
   }
 }
@@ -161,5 +164,16 @@ let cache: AgentInfo[] | null = null
 export async function detectAgents(cfg: Config, force = false): Promise<AgentInfo[]> {
   if (cache && !force) return cache
   cache = await Promise.all([detectClaude(cfg), detectCodex(cfg)])
+  for (const info of cache) {
+    if (info.available) {
+      log.info(
+        'agents',
+        `${info.label} ${info.version} — ${info.models.length} model(s)`,
+        info.models.map((m) => m.id).join(', ') || (info.note ?? '')
+      )
+    } else {
+      log.warn('agents', `${info.label} not available`, info.note ?? undefined)
+    }
+  }
   return cache
 }

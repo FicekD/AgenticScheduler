@@ -1,7 +1,7 @@
-import { app, BrowserWindow, Tray, Menu, ipcMain, dialog, nativeImage } from 'electron'
+import { app, BrowserWindow, Tray, Menu, ipcMain, dialog, nativeImage, shell } from 'electron'
 import { join, dirname } from 'path'
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync, existsSync } from 'fs'
-import type { Config, ReportFile } from '../shared/types'
+import type { Config, LogLevel, ReportFile } from '../shared/types'
 import { loadConfig, saveConfig } from './config'
 import { listRuns } from './store'
 import { runOrchestrator, cancelRun, isBusy } from './runner'
@@ -9,6 +9,7 @@ import { applySchedule, nextRunFor } from './scheduler'
 import { loadWindowState, trackWindowState } from './windowState'
 import { ensureAgenticIgnored } from './repo'
 import { detectAgents } from './agents'
+import { clearLogs, errText, listLogs, log, logFilePath } from './log'
 
 let win: BrowserWindow | null = null
 let tray: Tray | null = null
@@ -50,6 +51,13 @@ function createWindow(): void {
       win?.hide()
     }
   })
+
+  win.webContents.on('render-process-gone', (_e, details) =>
+    log.error('window', `renderer process gone: ${details.reason}`, String(details.exitCode))
+  )
+  win.webContents.on('did-fail-load', (_e, code, desc, url) =>
+    log.error('window', `failed to load ${url}`, `${desc} (${code})`)
+  )
 
   if (process.env['ELECTRON_RENDERER_URL']) {
     win.loadURL(process.env['ELECTRON_RENDERER_URL'])
@@ -102,6 +110,16 @@ function listReports(): ReportFile[] {
 }
 
 function registerIpc(): void {
+  ipcMain.handle('logs:list', () => listLogs())
+  ipcMain.handle('logs:clear', () => {
+    clearLogs()
+    log.info('app', 'log view cleared')
+  })
+  ipcMain.handle('logs:reveal', () => shell.showItemInFolder(logFilePath()))
+  ipcMain.on('logs:write', (_e, level: LogLevel, message: string, detail?: string) =>
+    log.raw(level, 'renderer', message, detail)
+  )
+
   ipcMain.on('window:minimize', () => win?.minimize())
   ipcMain.on('window:toggleMaximize', () => {
     if (!win) return
@@ -114,7 +132,8 @@ function registerIpc(): void {
     if (!config.repoPath) return ''
     try {
       return readFileSync(join(config.repoPath, config.planPath), 'utf-8')
-    } catch {
+    } catch (err) {
+      log.debug('plan', 'no plan file yet', errText(err))
       return ''
     }
   })
@@ -124,8 +143,10 @@ function registerIpc(): void {
       const p = join(config.repoPath, config.planPath)
       mkdirSync(dirname(p), { recursive: true })
       writeFileSync(p, content, 'utf-8')
+      log.info('plan', `saved plan (${content.length} chars)`, p)
       return { ok: true }
     } catch (err: any) {
+      log.error('plan', 'could not save the plan', errText(err))
       return { ok: false, error: err?.message ?? String(err) }
     }
   })
@@ -140,7 +161,9 @@ function registerIpc(): void {
   })
   ipcMain.handle('config:pickRepo', async () => {
     const res = await dialog.showOpenDialog(win!, { properties: ['openDirectory'] })
-    return res.canceled ? null : res.filePaths[0]
+    if (res.canceled) return null
+    log.info('config', `repository picked: ${res.filePaths[0]}`)
+    return res.filePaths[0]
   })
   ipcMain.handle('runs:list', () => listRuns())
   ipcMain.handle('runs:nextTimes', () =>
@@ -161,23 +184,31 @@ function registerIpc(): void {
     try {
       return readFileSync(path, 'utf-8')
     } catch (err: any) {
+      log.warn('reports', `could not read ${path}`, errText(err))
       return `Failed to read report: ${err?.message ?? err}`
     }
   })
 }
 
+process.on('uncaughtException', (err) => log.error('app', 'uncaught exception', errText(err)))
+process.on('unhandledRejection', (reason) => log.error('app', 'unhandled rejection', errText(reason)))
+
 app.whenReady().then(() => {
+  log.info('app', `Agentic Scheduler ${app.getVersion()} starting`, `Electron ${process.versions.electron}, logs at ${logFilePath()}`)
   config = loadConfig()
   ensureAgenticIgnored(config.repoPath)
   registerIpc()
   createWindow()
   createTray()
   applySchedule(() => config)
+  void detectAgents(config)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
   })
 })
+
+app.on('before-quit', () => log.info('app', 'quitting'))
 
 app.on('window-all-closed', () => {
   // Stay alive in the tray; do not quit on window close.

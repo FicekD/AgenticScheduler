@@ -139,7 +139,7 @@ export default function Settings(): JSX.Element {
 
       <div className="flex min-h-0 flex-1 flex-col gap-4">
         <div className="flex shrink-0 items-start gap-4">
-          <div ref={generalRef} className="min-w-0 flex-[2]">
+          <div ref={generalRef} className="min-w-0 flex-2">
             <Card className="space-y-4 p-5">
               <div>
                 <div className={label}>Repository</div>
