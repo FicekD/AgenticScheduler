@@ -38,7 +38,7 @@ export function loadConfig(): Config {
   if (!existsSync(p)) {
     const d = defaults()
     writeFileSync(p, JSON.stringify(d, null, 2))
-    log.info('config', 'no config found — wrote defaults', p)
+    log.info('config', 'no config found, wrote defaults', p)
     return d
   }
   try {
@@ -50,7 +50,7 @@ export function loadConfig(): Config {
     log.info('config', `loaded config: ${merged.agent} / ${merged.model}`, p)
     return merged
   } catch (err) {
-    log.error('config', 'config is unreadable — falling back to defaults', errText(err))
+    log.error('config', 'config is unreadable, falling back to defaults', errText(err))
     return defaults()
   }
 }

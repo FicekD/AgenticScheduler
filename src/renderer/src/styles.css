@@ -4,7 +4,7 @@
   color-scheme: dark;
 }
 
-/* Accent themes — muted / "bland" palette. Channels are R G B for rgb(var() / a). */
+/* Accent themes, muted / "bland" palette. Channels are R G B for rgb(var() / a). */
 :root,
 [data-theme='teal'] {
   --accent: 15 118 110;

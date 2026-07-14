@@ -78,7 +78,7 @@ export default function Settings(): JSX.Element {
   const efforts = models.find((m) => m.id === draft.model)?.efforts ?? []
   const defaultEffort = models.find((m) => m.id === draft.model)?.defaultEffort
 
-  // Each agent has its own models and effort levels — carrying the old ones over is nonsense.
+  // Each agent has its own models and effort levels, carrying the old ones over is nonsense.
   const setAgent = (kind: AgentKind): void => {
     const next = agents?.find((a) => a.kind === kind)?.models[0]
     setDraft({ ...draft, agent: kind, model: next?.id ?? '', reasoningEffort: null })
@@ -94,7 +94,7 @@ export default function Settings(): JSX.Element {
   const removeSlot = (id: string): void =>
     set('slots', draft.slots.filter((s) => s.id !== id))
 
-  // Repository takes effect immediately — persist it without waiting for Save,
+  // Repository takes effect immediately, persist it without waiting for Save,
   // touching only repoPath so other in-progress edits stay unsaved.
   const commitRepo = async (path: string): Promise<void> => {
     set('repoPath', path)

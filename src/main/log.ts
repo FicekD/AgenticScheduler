@@ -47,7 +47,7 @@ export function logFilePath(): string {
 
 function format(e: LogEntry): string {
   const stamp = new Date(e.ts).toISOString()
-  const detail = e.detail ? ` :: ${e.detail}` : ''
+  const detail = e.detail ? `: ${e.detail}` : ''
   return `${stamp} ${e.level.toUpperCase().padEnd(5)} [${e.scope}] ${e.message}${detail}`
 }
 

@@ -37,7 +37,7 @@ export default function Logs(): JSX.Element {
         <div>
           <h1 className="text-xl font-semibold text-white">Logs</h1>
           <p className="text-sm text-zinc-400">
-            What the app itself is doing — the place to look when something goes wrong.
+            What the app itself is doing, the place to look when something goes wrong.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -85,7 +85,7 @@ export default function Logs(): JSX.Element {
             <div className="text-zinc-600">
               {appLogs.length === 0
                 ? 'Nothing logged yet.'
-                : 'Nothing at this severity — try a lower one.'}
+                : 'Nothing at this severity, try a lower one.'}
             </div>
           )}
           {visible.map((e, i) => (

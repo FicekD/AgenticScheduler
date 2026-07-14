@@ -39,11 +39,11 @@ function renderPrompt(cfg: Config): string {
 
 export function runOrchestrator(cfg: Config, label: string, slotId: string | null): Run | null {
   if (isBusy()) {
-    log.warn('runner', `"${label}" not started — a run is already active`)
+    log.warn('runner', `"${label}" not started, a run is already active`)
     return null
   }
   if (!cfg.repoPath || !existsSync(cfg.repoPath)) {
-    log.error('runner', `"${label}" not started — repository path is unset or missing`, cfg.repoPath)
+    log.error('runner', `"${label}" not started, repository path is unset or missing`, cfg.repoPath)
     throw new Error('Repository path is not set or does not exist.')
   }
   ensureAgenticIgnored(cfg.repoPath)
@@ -176,7 +176,7 @@ export function runOrchestrator(cfg: Config, label: string, slotId: string | nul
 export function cancelRun(runId: string): boolean {
   const child = active.get(runId)
   if (!child) {
-    log.warn('runner', `cancel ignored — run ${runId} is not active`)
+    log.warn('runner', `cancel ignored, run ${runId} is not active`)
     return false
   }
   log.info('runner', `cancelling run ${runId}`)
@@ -189,7 +189,7 @@ function notify(status: RunStatus, label: string, created: string[]): void {
   if (!Notification.isSupported()) return
   const titles: Record<string, string> = {
     completed: '✅ Point completed',
-    limit: '⏸ Usage limit — will resume',
+    limit: '⏸ Usage limit, will resume',
     incomplete: '⚠️ Ended without report',
     error: '❌ Run errored',
     cancelled: '⏹ Run cancelled'

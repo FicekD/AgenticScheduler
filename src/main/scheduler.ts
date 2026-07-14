@@ -35,7 +35,7 @@ export function applySchedule(getConfig: () => Config): void {
     if (!slot.enabled) continue
     const expr = cronExpr(slot.time)
     if (!expr) {
-      log.warn('scheduler', `slot ${slot.id} has an unusable time "${slot.time}" — skipped`)
+      log.warn('scheduler', `slot ${slot.id} has an unusable time "${slot.time}", skipped`)
       continue
     }
     const task = cron.schedule(expr, () => {
@@ -46,12 +46,12 @@ export function applySchedule(getConfig: () => Config): void {
         return
       }
       if (isBusy()) {
-        log.warn('scheduler', `slot ${s.time} skipped — a run is already active`)
-        BrowserWindow.getAllWindows()[0]?.webContents.send('run:event', {
+        log.warn('scheduler', `slot ${s.time} skipped, a run is already active`)
+        BrowserWindow.getAllWindows()[0]?.webContents.send('run: event', {
           runId: 'scheduler',
           ts: Date.now(),
           kind: 'status',
-          text: `slot ${s.time} skipped — a run is already active`
+          text: `slot ${s.time} skipped, a run is already active`
         })
         return
       }

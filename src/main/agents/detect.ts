@@ -77,7 +77,7 @@ function claudeModels(efforts: string[]): AgentModel[] {
       })
     }
   } catch {
-    /* no cache yet — the aliases are enough */
+    /* no cache yet, the aliases are enough */
   }
   return models
 }
@@ -155,7 +155,7 @@ async function detectCodex(cfg: Config): Promise<AgentInfo> {
     models,
     note: models.length
       ? null
-      : 'No model list cached yet — sign in and run codex once, then refresh.'
+      : 'No model list cached yet: sign in and run codex once, then refresh.'
   }
 }
 
@@ -168,7 +168,7 @@ export async function detectAgents(cfg: Config, force = false): Promise<AgentInf
     if (info.available) {
       log.info(
         'agents',
-        `${info.label} ${info.version} — ${info.models.length} model(s)`,
+        `${info.label} ${info.version}: ${info.models.length} model(s)`,
         info.models.map((m) => m.id).join(', ') || (info.note ?? '')
       )
     } else {

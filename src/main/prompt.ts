@@ -21,14 +21,14 @@ subscription. If possible, you delegate parallelizable work to weaker subagents.
 5. Verify the point is genuinely complete (build/tests/whatever the point demands).
 6. ONLY when the point is fully complete and verified, write {{REPORTS_DIR}}/point-<N>.md
    describing what changed, key decisions, the branch name, and what the next session should
-   tackle. This path is under a gitignored directory — it is a LOCAL completion certificate,
+   tackle. This path is under a gitignored directory, it is a LOCAL completion certificate,
    so you do not need to commit it (git will not stage it). The report file's existence is the
    ONLY signal that a point is done. Never write it early.
 
 ## Rules
 - Permissions are bypassed; you will not be prompted. Be careful and deliberate.
 - Never work directly on main/default; always work on your point branch. Do NOT open PRs
-  or merge — the human reviews and merges branches manually.
+  or merge, the human reviews and merges branches manually.
 - If you run low on budget or time, just STOP. Do not write the report. The next scheduled
   session will detect the missing report and resume this same point from your commits.
 - Keep the working tree clean between commits so a resume is unambiguous.

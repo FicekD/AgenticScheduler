@@ -22,7 +22,7 @@ export function listRuns(): Run[] {
   try {
     cache = JSON.parse(readFileSync(p, 'utf-8'))
   } catch (err) {
-    log.error('store', 'runs.json is unreadable — starting with an empty history', errText(err))
+    log.error('store', 'runs.json is unreadable, starting with an empty history', errText(err))
     cache = []
   }
   return cache!
